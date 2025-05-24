@@ -12,7 +12,8 @@
   <title>แสดงเวลาปัจจุบันของประเทศไทย</title>
   <link rel="icon" href="../img/clock time thai.png" type="image/x-icon" />
   <style>
-    html, body {
+    html,
+    body {
       margin: 0;
       height: 100%;
       display: flex;
@@ -52,7 +53,8 @@
       color: #000000;
     }
 
-    .theme-toggle, .fullscreen-toggle {
+    .theme-toggle,
+    .fullscreen-toggle {
       margin: 10px 5px;
       padding: 10px 20px;
       cursor: pointer;
@@ -144,40 +146,41 @@
   </div>
 
   <footer>
-      <p>&copy; Sumett Ampornsak 2024</p>
-      <p>
-        <a href="mailto:Sumett13ampornsak@gmail.com"
-          >Sumett13ampornsak@gmail.com</a
-        >
-      </p>
-    </footer>
+    <p>&copy; Sumett Ampornsak 2024</p>
+    <p>
+      <a href="mailto:Sumett13ampornsak@gmail.com">Sumett13ampornsak@gmail.com</a>
+    </p>
+  </footer>
 
   <script>
-    function displayServerTime() {
-      fetch("https://timeapi.io/api/Time/current/zone?timeZone=Asia/Bangkok")
-        .then((response) => response.json())
-        .then((data) => {
-          const dateTime = new Date(data.year, data.month - 1, data.day, data.hour, data.minute, data.seconds);
+    function displayBangkokTime() {
+      const bangkokTime = new Date().toLocaleString("th-TH", {
+        timeZone: "Asia/Bangkok",
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
 
-          const timeHtml = `<span class="hour">${data.hour}</span>:<span class="minute">${data.minute.toString().padStart(2, '0')}</span>:<span class="second">${data.seconds.toString().padStart(2, '0')}</span>`;
-          document.getElementById("current-time").innerHTML = timeHtml;
+      // แยกวันที่กับเวลาออกจากกัน
+      const parts = bangkokTime.split(" ");
+      // รูปแบบ: วันเดือนปี เวลา เช่น "วันศุกร์ที่ 24 พฤษภาคม 2567 14:30:15"
+      // โดยทั่วไป parts จะมีข้อมูลแบบนี้:
+      // ["วันศุกร์ที่", "24", "พฤษภาคม", "2567", "14:30:15"]
 
-          const thaiDate = dateTime.toLocaleDateString("th-TH", {
-            weekday: "long", year: "numeric", month: "long", day: "numeric"
-          });
-          document.getElementById("current-date").textContent = `${thaiDate} (สัปดาห์ที่ ${getWeekNumber(dateTime)})`;
+      // หา index เวลา (อาจจะเป็นตัวสุดท้าย)
+      const time = parts[parts.length - 1];
+      // เอาวันที่ออกมาโดย join ส่วนก่อนหน้า
+      const date = parts.slice(0, parts.length - 1).join(" ");
 
-          document.title = `เวลาตอนนี้ ${data.hour}:${data.minute}`;
-        })
-        .catch((error) => {
-          console.error("Error fetching time:", error);
-        });
-    }
+      document.getElementById("current-time").textContent = time;
+      document.getElementById("current-date").textContent = date;
 
-    function getWeekNumber(date) {
-      const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-      const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-      return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+      document.title = `เวลาตอนนี้ ${time}`;
     }
 
     function toggleTheme() {
@@ -192,9 +195,9 @@
       themeBtn.classList.toggle("dark-mode", isLight);
       fullBtn.classList.toggle("light-mode", !isLight);
       fullBtn.classList.toggle("dark-mode", isLight);
-      themeBtn.innerHTML = isLight
-        ? '<i class="fas fa-sun"></i> Light Mode'
-        : '<i class="fas fa-moon"></i> Dark Mode';
+      themeBtn.innerHTML = isLight ?
+        '<i class="fas fa-sun"></i> Light Mode' :
+        '<i class="fas fa-moon"></i> Dark Mode';
     }
 
     function toggleFullScreen() {
@@ -214,8 +217,8 @@
       document.body.style.fontFamily = fontFamily;
     };
 
-    displayServerTime();
-    setInterval(displayServerTime, 1000);
+    displayBangkokTime();
+    setInterval(displayBangkokTime, 1000);
   </script>
 
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
