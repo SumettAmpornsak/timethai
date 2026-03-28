@@ -3,304 +3,545 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>TimeThai · เวลาไทยทันสมัย</title>
-  <!-- Tailwind CSS + Font Awesome (minimal) -->
+  <title>TimeThai · ปรับแต่งเต็มรูปแบบ + Night Mode</title>
+  <!-- Tailwind CSS + Font Awesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <!-- Custom config override Tailwind for smoother dark mode -->
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
-        }
-      }
-    }
-  </script>
   <style>
-    /* smooth transitions & glassmorphism */
+    /* ใช้ CSS Variables รองรับการปรับแต่งทั้งหมด */
+    :root {
+      --body-bg: #f9fafb;
+      --card-bg: rgba(255, 255, 255, 0.8);
+      --text-color: #111827;
+      --font-family: 'Inter', system-ui, sans-serif;
+      --clock-font-size: 3rem;
+      --analog-face: #ffffff;
+      --analog-hands: #1f2937;
+      --analog-numbers: #1f2937;
+    }
     body {
-      transition: background-color 0.3s ease, color 0.2s ease;
+      background-color: var(--body-bg);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      transition: background-color 0.2s, color 0.2s;
     }
-    .glass-card {
-      background: rgba(255, 255, 255, 0.2);
+    .clock-card {
+      background: var(--card-bg);
       backdrop-filter: blur(12px);
-      border-radius: 2rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+      transition: background 0.2s;
     }
-    .dark .glass-card {
-      background: rgba(15, 25, 35, 0.5);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .digital-time {
+      font-size: var(--clock-font-size);
+      font-weight: 700;
+      font-family: monospace;
+      letter-spacing: 0.05em;
     }
-    /* custom focus ring */
-    button:focus-visible, a:focus-visible {
-      outline: 2px solid #3b82f6;
-      outline-offset: 2px;
+    .date-text {
+      font-size: calc(var(--clock-font-size) * 0.45);
+    }
+    button, select, input {
+      font-family: inherit;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
     }
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased">
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-  <!-- Main Container -->
-  <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12">
-    <!-- Time Card (main display) -->
-    <div class="glass-card w-full max-w-2xl p-8 md:p-12 transition-all duration-300">
-      <!-- Current Time (digital clock) -->
-      <div class="text-center">
-        <div id="timeDisplay" class="text-6xl md:text-7xl font-bold tracking-tight font-mono mb-2">--:--:--</div>
-        <div id="dateThai" class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mt-2">--</div>
-        <div id="buddhistYear" class="text-sm text-gray-500 dark:text-gray-400 mt-1">พ.ศ. ----</div>
-        <div class="text-xs text-gray-400 dark:text-gray-500 mt-4">⏱️ เวลาตามเขตไทย (UTC+7)</div>
-      </div>
+  <!-- Main Clock Card -->
+  <div class="clock-card w-full max-w-2xl rounded-3xl shadow-xl p-6 md:p-8 transition-all">
+    <!-- Digital Clock -->
+    <div id="digitalContainer" class="text-center">
+      <div id="digitalTime" class="digital-time font-mono">--:--:--</div>
+      <div id="dateThai" class="date-text mt-2 font-medium">--</div>
+      <div id="buddhistYear" class="text-sm opacity-80 mt-1">พ.ศ. ----</div>
     </div>
 
-    <!-- Action Buttons (Settings & Contact) -->
-    <div class="flex flex-wrap gap-4 justify-center mt-8">
-      <button id="settingsBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700">
-        <i class="fas fa-sliders-h text-sm"></i> <span>ตั้งค่า</span>
-      </button>
-      <button id="contactBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700">
-        <i class="fas fa-envelope text-sm"></i> <span>ติดต่อ</span>
-      </button>
+    <!-- Analog Clock Canvas -->
+    <div id="analogContainer" class="flex justify-center mt-6 hidden">
+      <canvas id="analogCanvas" width="200" height="200" class="rounded-full shadow-md"></canvas>
     </div>
 
-    <!-- Footer note (optional) -->
-    <div class="mt-12 text-center text-xs text-gray-400 dark:text-gray-600">
-      TimeThai · เวลาไทยทันสมัย
-    </div>
+    <div class="text-center text-xs opacity-60 mt-6">⏱️ เวลาตามเขตไทย (UTC+7)</div>
   </div>
 
-  <!-- ========== MODAL: SETTINGS ========== -->
-  <div id="settingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-all duration-200">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl transform transition-all">
+  <!-- Action Buttons -->
+  <div class="flex flex-wrap gap-4 justify-center mt-8">
+    <button id="settingsBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur shadow hover:shadow-md transition border border-gray-200 dark:border-gray-700">
+      <i class="fas fa-sliders-h"></i> ปรับแต่งทั้งหมด
+    </button>
+    <button id="nightModeBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 backdrop-blur shadow hover:shadow-md transition border border-gray-200">
+      <i class="fas fa-moon"></i> Night Mode
+    </button>
+    <button id="resetBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 backdrop-blur shadow hover:shadow-md transition border border-gray-200">
+      <i class="fas fa-undo-alt"></i> คืนค่าปริยาย
+    </button>
+  </div>
+
+  <!-- ========== MODAL: SETTINGS (เต็มรูปแบบ) ========== -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-all">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl">
       <div class="flex justify-between items-center mb-5">
-        <h2 class="text-xl font-semibold">ตั้งค่าระบบ</h2>
-        <button id="closeSettings" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><i class="fas fa-times text-xl"></i></button>
+        <h2 class="text-xl font-semibold">ตั้งค่าทั้งหมด</h2>
+        <button id="closeSettings" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
       </div>
-      <div class="space-y-5">
-        <!-- Time Format -->
-        <div>
-          <label class="block text-sm font-medium mb-2">รูปแบบเวลา</label>
-          <div class="flex gap-3">
-            <button id="format24" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">24 ชั่วโมง</button>
-            <button id="format12" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">12 ชั่วโมง (AM/PM)</button>
-          </div>
-        </div>
-        <!-- Theme Mode -->
-        <div>
-          <label class="block text-sm font-medium mb-2">โหมดการแสดงผล</label>
-          <div class="flex gap-3">
-            <button id="themeLight" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"><i class="fas fa-sun mr-1"></i> สว่าง</button>
-            <button id="themeDark" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"><i class="fas fa-moon mr-1"></i> มืด</button>
-            <button id="themeAuto" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"><i class="fas fa-adjust mr-1"></i> อัตโนมัติ</button>
-          </div>
-        </div>
-      </div>
-      <div class="mt-6 text-xs text-gray-500 text-center">การตั้งค่าถูกบันทึกอัตโนมัติ</div>
-    </div>
-  </div>
 
-  <!-- ========== MODAL: CONTACT ========== -->
-  <div id="contactModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-all duration-200">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl transform transition-all">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">ติดต่อ & ช่องทาง</h2>
-        <button id="closeContact" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><i class="fas fa-times text-xl"></i></button>
-      </div>
-      <div class="space-y-4 text-center">
-        <p class="text-gray-600 dark:text-gray-300">มีข้อเสนอแนะ หรือพบปัญหา?</p>
-        <div class="flex justify-center gap-6 text-2xl">
-          <a href="mailto:support@timethai.com" class="hover:text-blue-500 transition"><i class="fas fa-envelope"></i></a>
-          <a href="#" class="hover:text-blue-400 transition"><i class="fab fa-github"></i></a>
-          <a href="#" class="hover:text-green-500 transition"><i class="fab fa-line"></i></a>
+      <div class="space-y-6">
+        <!-- 1. รูปแบบนาฬิกา -->
+        <div>
+          <label class="block font-medium mb-2">รูปแบบนาฬิกา</label>
+          <div class="flex flex-wrap gap-3">
+            <button data-clock="digital" class="clock-style-btn flex-1 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">ดิจิทัล</button>
+            <button data-clock="analog" class="clock-style-btn flex-1 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">เข็ม (Analog)</button>
+            <button data-clock="both" class="clock-style-btn flex-1 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">ทั้งคู่</button>
+          </div>
         </div>
-        <p class="text-sm text-gray-500 mt-3">อีเมล: timethai@example.com</p>
-        <hr class="my-2 dark:border-gray-700">
-        <div class="text-xs text-gray-400">พัฒนาโดยทีม TimeThai — เพื่อคนไทยทุกคน</div>
+
+        <!-- 2. รูปแบบเวลา (12/24) -->
+        <div>
+          <label class="block font-medium mb-2">รูปแบบเวลา (ดิจิทัล)</label>
+          <div class="flex gap-3">
+            <button id="format24" class="flex-1 py-2 rounded-lg border border-gray-300">24 ชม.</button>
+            <button id="format12" class="flex-1 py-2 rounded-lg border border-gray-300">12 ชม. (AM/PM)</button>
+          </div>
+        </div>
+
+        <!-- 3. ฟอนต์และขนาด -->
+        <div>
+          <label class="block font-medium mb-2">แบบอักษร</label>
+          <select id="fontFamilySelect" class="w-full p-2 border rounded-lg bg-white dark:bg-gray-700">
+            <option value="'Inter', system-ui, sans-serif">Inter (ทันสมัย)</option>
+            <option value="'Roboto', sans-serif">Roboto</option>
+            <option value="'SF Mono', monospace">Monospace</option>
+            <option value="'Prompt', sans-serif">Prompt (ไทย)</option>
+            <option value="'Noto Sans Thai', sans-serif">Noto Sans Thai</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-medium mb-2">ขนาดตัวอักษร (นาฬิกาดิจิทัล)</label>
+          <select id="fontSizeSelect" class="w-full p-2 border rounded-lg">
+            <option value="2rem">เล็ก</option>
+            <option value="3rem">ปกติ</option>
+            <option value="4rem">ใหญ่</option>
+            <option value="5rem">ใหญ่มาก</option>
+          </select>
+        </div>
+
+        <!-- 4. สี -->
+        <div>
+          <label class="block font-medium mb-2">สีตัวหนังสือหลัก</label>
+          <input type="color" id="textColorPicker" value="#111827" class="w-full h-10 p-1 border rounded">
+        </div>
+        <div>
+          <label class="block font-medium mb-2">สีพื้นหลัง (ตัวการ์ด)</label>
+          <input type="color" id="cardBgPicker" value="#ffffffcc" class="w-full h-10 p-1 border rounded">
+          <div class="text-xs mt-1 opacity-70">ใช้ค่าสีแบบ RGBA ได้ เช่น #ffffffcc = ขาวโปร่งแสง</div>
+        </div>
+        <div>
+          <label class="block font-medium mb-2">สีพื้นหลัง (หน้าเว็บ)</label>
+          <input type="color" id="bodyBgPicker" value="#f9fafb" class="w-full h-10 p-1 border rounded">
+        </div>
+
+        <!-- 5. สีของนาฬิกาเข็ม -->
+        <div class="border-t pt-3">
+          <p class="font-medium mb-2">🎨 สีหน้าปัดนาฬิกาเข็ม</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-sm">พื้นหลังหน้าปัด</label>
+              <input type="color" id="analogFacePicker" value="#ffffff" class="w-full h-8">
+            </div>
+            <div>
+              <label class="text-sm">สีเข็ม</label>
+              <input type="color" id="analogHandsPicker" value="#1f2937" class="w-full h-8">
+            </div>
+            <div class="col-span-2">
+              <label class="text-sm">สีตัวเลข/ขีด</label>
+              <input type="color" id="analogNumbersPicker" value="#1f2937" class="w-full h-8">
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div class="mt-6 text-xs text-center text-gray-500">การตั้งค่าทั้งหมดจะถูกบันทึกอัตโนมัติ</div>
     </div>
   </div>
 
   <script>
-    // ------------------------------
-    //  Global Variables & Helpers
-    // ------------------------------
-    let currentFormat = '24';   // '24' or '12'
-    let currentTheme = 'auto';  // 'light', 'dark', 'auto'
-
-    // DOM elements
-    const timeDisplay = document.getElementById('timeDisplay');
+    // ---------- DOM Elements ----------
+    const digitalTimeEl = document.getElementById('digitalTime');
     const dateThaiEl = document.getElementById('dateThai');
     const buddhistYearEl = document.getElementById('buddhistYear');
-    
-    // Settings Modal
+    const digitalContainer = document.getElementById('digitalContainer');
+    const analogContainer = document.getElementById('analogContainer');
+    const analogCanvas = document.getElementById('analogCanvas');
+    const ctx = analogCanvas.getContext('2d');
+
+    // Settings modal
     const settingsModal = document.getElementById('settingsModal');
     const settingsBtn = document.getElementById('settingsBtn');
     const closeSettings = document.getElementById('closeSettings');
+    const resetBtn = document.getElementById('resetBtn');
+    const nightModeBtn = document.getElementById('nightModeBtn');
+
+    // Control elements
+    const clockStyleBtns = document.querySelectorAll('.clock-style-btn');
     const format24Btn = document.getElementById('format24');
     const format12Btn = document.getElementById('format12');
-    const themeLightBtn = document.getElementById('themeLight');
-    const themeDarkBtn = document.getElementById('themeDark');
-    const themeAutoBtn = document.getElementById('themeAuto');
+    const fontFamilySelect = document.getElementById('fontFamilySelect');
+    const fontSizeSelect = document.getElementById('fontSizeSelect');
+    const textColorPicker = document.getElementById('textColorPicker');
+    const cardBgPicker = document.getElementById('cardBgPicker');
+    const bodyBgPicker = document.getElementById('bodyBgPicker');
+    const analogFacePicker = document.getElementById('analogFacePicker');
+    const analogHandsPicker = document.getElementById('analogHandsPicker');
+    const analogNumbersPicker = document.getElementById('analogNumbersPicker');
+
+    // ---------- State ----------
+    let currentFormat = '24';
+    let clockStyle = 'digital';
     
-    // Contact Modal
-    const contactModal = document.getElementById('contactModal');
-    const contactBtn = document.getElementById('contactBtn');
-    const closeContact = document.getElementById('closeContact');
+    // ค่าเริ่มต้น Light Mode
+    const defaultLight = {
+      timeFormat: '24',
+      clockStyle: 'digital',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      fontSize: '3rem',
+      textColor: '#111827',
+      cardBg: 'rgba(255,255,255,0.8)',
+      bodyBg: '#f9fafb',
+      analogFace: '#ffffff',
+      analogHands: '#1f2937',
+      analogNumbers: '#1f2937'
+    };
 
-    // ---------- Helper: load saved settings ----------
-    function loadSettings() {
-      const savedFormat = localStorage.getItem('timethai_timeFormat');
-      if (savedFormat === '12' || savedFormat === '24') currentFormat = savedFormat;
-      const savedTheme = localStorage.getItem('timethai_theme');
-      if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'auto') currentTheme = savedTheme;
-      applyTheme(currentTheme);
-      updateButtonsState();
-    }
+    // ค่า Night Mode (ตัวหนังสือสว่าง พื้นหลังมืด)
+    const nightModeColors = {
+      textColor: '#f3f4f6',
+      bodyBg: '#111827',
+      cardBg: 'rgba(31, 41, 55, 0.8)',
+      analogFace: '#1f2937',
+      analogHands: '#e5e7eb',
+      analogNumbers: '#e5e7eb'
+    };
 
-    // update active visual on settings buttons
-    function updateButtonsState() {
-      // time format buttons
-      if (currentFormat === '24') {
-        format24Btn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
-        format12Btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+    let settings = { ...defaultLight };
+    let isNightModeActive = false;
+
+    // ---------- Helper: โหลด/บันทึก LocalStorage ----------
+    function loadAllSettings() {
+      const saved = localStorage.getItem('timethai_full_settings');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          Object.assign(settings, parsed);
+          // ตรวจสอบว่าเซ็ตติ้งที่โหลดตรงกับ Night Mode หรือไม่
+          isNightModeActive = (settings.bodyBg === nightModeColors.bodyBg && 
+                               settings.textColor === nightModeColors.textColor);
+        } catch(e) {}
       } else {
-        format12Btn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
-        format24Btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+        settings = { ...defaultLight };
+        isNightModeActive = false;
       }
-      // theme buttons (just style hint)
-      [themeLightBtn, themeDarkBtn, themeAutoBtn].forEach(btn => btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400'));
-      if (currentTheme === 'light') themeLightBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
-      if (currentTheme === 'dark') themeDarkBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
-      if (currentTheme === 'auto') themeAutoBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+      // sync UI elements
+      currentFormat = settings.timeFormat;
+      clockStyle = settings.clockStyle;
+      fontFamilySelect.value = settings.fontFamily;
+      fontSizeSelect.value = settings.fontSize;
+      textColorPicker.value = settings.textColor;
+      cardBgPicker.value = settings.cardBg;
+      bodyBgPicker.value = settings.bodyBg;
+      analogFacePicker.value = settings.analogFace;
+      analogHandsPicker.value = settings.analogHands;
+      analogNumbersPicker.value = settings.analogNumbers;
+
+      updateTimeFormatButtons();
+      updateClockStyleButtons();
+      applyAllStyles();
+      updateNightModeButtonUI();
     }
 
-    // apply theme to document
-    function applyTheme(theme) {
-      const root = document.documentElement;
-      if (theme === 'light') {
-        root.classList.remove('dark');
-      } else if (theme === 'dark') {
-        root.classList.add('dark');
-      } else if (theme === 'auto') {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          root.classList.add('dark');
+    function saveAllSettings() {
+      localStorage.setItem('timethai_full_settings', JSON.stringify(settings));
+    }
+
+    function applyAllStyles() {
+      document.documentElement.style.setProperty('--body-bg', settings.bodyBg);
+      document.documentElement.style.setProperty('--card-bg', settings.cardBg);
+      document.documentElement.style.setProperty('--text-color', settings.textColor);
+      document.documentElement.style.setProperty('--font-family', settings.fontFamily);
+      document.documentElement.style.setProperty('--clock-font-size', settings.fontSize);
+      document.documentElement.style.setProperty('--analog-face', settings.analogFace);
+      document.documentElement.style.setProperty('--analog-hands', settings.analogHands);
+      document.documentElement.style.setProperty('--analog-numbers', settings.analogNumbers);
+      
+      if (clockStyle === 'digital') {
+        digitalContainer.classList.remove('hidden');
+        analogContainer.classList.add('hidden');
+      } else if (clockStyle === 'analog') {
+        digitalContainer.classList.add('hidden');
+        analogContainer.classList.remove('hidden');
+      } else {
+        digitalContainer.classList.remove('hidden');
+        analogContainer.classList.remove('hidden');
+      }
+      
+      if (clockStyle !== 'digital') drawAnalogClock();
+      updateClockDisplay();
+    }
+
+    // เปิด/ปิด Night Mode
+    function toggleNightMode() {
+      if (isNightModeActive) {
+        // กลับสู่ Light Mode (ค่าเริ่มต้น)
+        settings = { ...defaultLight };
+        settings.clockStyle = clockStyle; // รักษารูปแบบนาฬิกาเดิม
+        settings.timeFormat = currentFormat;
+        settings.fontFamily = fontFamilySelect.value;
+        settings.fontSize = fontSizeSelect.value;
+        isNightModeActive = false;
+      } else {
+        // เปิด Night Mode: เปลี่ยนเฉพาะสีตามที่กำหนดไว้
+        settings.textColor = nightModeColors.textColor;
+        settings.bodyBg = nightModeColors.bodyBg;
+        settings.cardBg = nightModeColors.cardBg;
+        settings.analogFace = nightModeColors.analogFace;
+        settings.analogHands = nightModeColors.analogHands;
+        settings.analogNumbers = nightModeColors.analogNumbers;
+        // เก็บค่าอื่นๆ เดิมไว้ (รูปแบบนาฬิกา, ฟอนต์, ขนาด, รูปแบบเวลา)
+        isNightModeActive = true;
+      }
+      // Sync UI pickers ให้ตรงกับค่าที่เปลี่ยน
+      textColorPicker.value = settings.textColor;
+      bodyBgPicker.value = settings.bodyBg;
+      cardBgPicker.value = settings.cardBg;
+      analogFacePicker.value = settings.analogFace;
+      analogHandsPicker.value = settings.analogHands;
+      analogNumbersPicker.value = settings.analogNumbers;
+      
+      applyAllStyles();
+      saveAllSettings();
+      updateNightModeButtonUI();
+    }
+
+    function updateNightModeButtonUI() {
+      if (isNightModeActive) {
+        nightModeBtn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+        nightModeBtn.classList.remove('border-gray-200');
+        nightModeBtn.classList.add('border-blue-400', 'bg-blue-50');
+      } else {
+        nightModeBtn.innerHTML = '<i class="fas fa-moon"></i> Night Mode';
+        nightModeBtn.classList.remove('border-blue-400', 'bg-blue-50');
+        nightModeBtn.classList.add('border-gray-200');
+      }
+    }
+
+    function updateTimeFormatButtons() {
+      if (currentFormat === '24') {
+        format24Btn.classList.add('bg-blue-100', 'border-blue-400');
+        format12Btn.classList.remove('bg-blue-100', 'border-blue-400');
+      } else {
+        format12Btn.classList.add('bg-blue-100', 'border-blue-400');
+        format24Btn.classList.remove('bg-blue-100', 'border-blue-400');
+      }
+    }
+
+    function updateClockStyleButtons() {
+      clockStyleBtns.forEach(btn => {
+        const val = btn.getAttribute('data-clock');
+        if (val === clockStyle) {
+          btn.classList.add('bg-blue-100', 'border-blue-400');
         } else {
-          root.classList.remove('dark');
+          btn.classList.remove('bg-blue-100', 'border-blue-400');
         }
-      }
-      localStorage.setItem('timethai_theme', theme);
-      currentTheme = theme;
+      });
     }
 
-    // listen to system theme change when in auto mode
-    function watchSystemTheme() {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = (e) => {
-        if (currentTheme === 'auto') {
-          if (e.matches) document.documentElement.classList.add('dark');
-          else document.documentElement.classList.remove('dark');
-        }
-      };
-      mediaQuery.addEventListener('change', handler);
-    }
-
-    // ---------- Time & Date Logic ----------
+    // ---------- เวลาและวันที่ไทย ----------
     function getThaiDateTime() {
       const now = new Date();
-      // convert to UTC+7 (Thailand)
       const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
       const thaiTime = new Date(utc + (7 * 3600000));
       
-      // Format time
       let hours = thaiTime.getHours();
-      let minutes = thaiTime.getMinutes();
-      let seconds = thaiTime.getSeconds();
+      const minutes = thaiTime.getMinutes();
+      const seconds = thaiTime.getSeconds();
       let period = '';
       
       if (currentFormat === '12') {
         period = hours >= 12 ? ' PM' : ' AM';
         hours = hours % 12 || 12;
       }
-      const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}${period}`;
+      const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}${period}`;
       
-      // Thai date elements
       const weekdaysThai = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
       const monthsThai = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
       const dayOfWeek = weekdaysThai[thaiTime.getDay()];
       const day = thaiTime.getDate();
       const month = monthsThai[thaiTime.getMonth()];
       const buddhistYear = thaiTime.getFullYear() + 543;
-      const thaiDateString = `วัน${dayOfWeek}ที่ ${day} ${month} พ.ศ. ${buddhistYear}`;
-      const buddhistYearOnly = `พ.ศ. ${buddhistYear}`;
-      
-      return { formattedTime, thaiDateString, buddhistYearOnly };
+      const thaiDate = `วัน${dayOfWeek}ที่ ${day} ${month} พ.ศ. ${buddhistYear}`;
+      const buddhistOnly = `พ.ศ. ${buddhistYear}`;
+      return { timeStr, thaiDate, buddhistOnly, hours24: thaiTime.getHours(), minutes, seconds };
     }
     
-    function updateClock() {
-      const { formattedTime, thaiDateString, buddhistYearOnly } = getThaiDateTime();
-      timeDisplay.textContent = formattedTime;
-      dateThaiEl.textContent = thaiDateString;
-      buddhistYearEl.textContent = buddhistYearOnly;
+    function updateClockDisplay() {
+      const { timeStr, thaiDate, buddhistOnly } = getThaiDateTime();
+      digitalTimeEl.textContent = timeStr;
+      dateThaiEl.textContent = thaiDate;
+      buddhistYearEl.textContent = buddhistOnly;
+      if (clockStyle !== 'digital') drawAnalogClock();
     }
     
-    // ---------- Settings event handlers ----------
-    function setTimeFormat(format) {
-      currentFormat = format;
-      localStorage.setItem('timethai_timeFormat', format);
-      updateButtonsState();
-      updateClock(); // immediate refresh
+    // ---------- วาดนาฬิกาเข็ม ----------
+    function drawAnalogClock() {
+      if (!ctx) return;
+      const { hours24, minutes, seconds } = getThaiDateTime();
+      const radius = analogCanvas.width / 2;
+      const centerX = radius, centerY = radius;
+      ctx.clearRect(0, 0, analogCanvas.width, analogCanvas.height);
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius - 5, 0, 2 * Math.PI);
+      ctx.fillStyle = settings.analogFace;
+      ctx.fill();
+      ctx.strokeStyle = settings.analogNumbers;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.font = `bold ${radius * 0.12}px monospace`;
+      ctx.fillStyle = settings.analogNumbers;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let i = 1; i <= 12; i++) {
+        let angle = i * Math.PI * 2 / 12 - Math.PI/2;
+        let x = centerX + (radius - 20) * Math.cos(angle);
+        let y = centerY + (radius - 20) * Math.sin(angle);
+        ctx.fillText(i.toString(), x, y);
+      }
+      
+      let hourAngle = (hours24 % 12) * (Math.PI * 2 / 12) + (minutes / 60) * (Math.PI * 2 / 12);
+      drawHand(centerX, centerY, radius * 0.4, hourAngle, settings.analogHands, 6);
+      let minuteAngle = minutes * (Math.PI * 2 / 60);
+      drawHand(centerX, centerY, radius * 0.6, minuteAngle, settings.analogHands, 4);
+      let secondAngle = seconds * (Math.PI * 2 / 60);
+      drawHand(centerX, centerY, radius * 0.7, secondAngle, '#e11d48', 2);
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 5, 0, 2*Math.PI);
+      ctx.fillStyle = settings.analogHands;
+      ctx.fill();
     }
     
-    function setTheme(theme) {
-      currentTheme = theme;
-      applyTheme(theme);
-      updateButtonsState();
+    function drawHand(cx, cy, length, angle, color, width) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      const x = cx + length * Math.cos(angle);
+      const y = cy + length * Math.sin(angle);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
     }
     
-    // ---------- Modal controls ----------
-    function openModal(modal) {
-      modal.classList.remove('hidden');
-      // trap focus minimal
-    }
-    function closeModal(modal) {
-      modal.classList.add('hidden');
-    }
-    
-    // ---------- Initialization ----------
-    function init() {
-      loadSettings();
-      watchSystemTheme();
-      updateClock();
-      setInterval(updateClock, 1000);
-      
-      // Settings modal events
-      settingsBtn.onclick = () => openModal(settingsModal);
-      closeSettings.onclick = () => closeModal(settingsModal);
-      settingsModal.onclick = (e) => { if (e.target === settingsModal) closeModal(settingsModal); };
-      
-      format24Btn.onclick = () => setTimeFormat('24');
-      format12Btn.onclick = () => setTimeFormat('12');
-      themeLightBtn.onclick = () => setTheme('light');
-      themeDarkBtn.onclick = () => setTheme('dark');
-      themeAutoBtn.onclick = () => setTheme('auto');
-      
-      // Contact modal events
-      contactBtn.onclick = () => openModal(contactModal);
-      closeContact.onclick = () => closeModal(contactModal);
-      contactModal.onclick = (e) => { if (e.target === contactModal) closeModal(contactModal); };
-      
-      // Keyboard ESC to close modals
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          if (!settingsModal.classList.contains('hidden')) closeModal(settingsModal);
-          if (!contactModal.classList.contains('hidden')) closeModal(contactModal);
-        }
+    // ---------- Event Listeners สำหรับตั้งค่า ----------
+    function attachSettingsEvents() {
+      clockStyleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          clockStyle = btn.getAttribute('data-clock');
+          settings.clockStyle = clockStyle;
+          updateClockStyleButtons();
+          applyAllStyles();
+          saveAllSettings();
+          // ถ้าเปลี่ยนรูปแบบนาฬิกา อาจจะทำให้ isNightModeActive สถานะยังคงเดิม แต่ไม่เป็นไร
+        });
       });
+      
+      format24Btn.addEventListener('click', () => {
+        currentFormat = '24';
+        settings.timeFormat = '24';
+        updateTimeFormatButtons();
+        updateClockDisplay();
+        saveAllSettings();
+      });
+      format12Btn.addEventListener('click', () => {
+        currentFormat = '12';
+        settings.timeFormat = '12';
+        updateTimeFormatButtons();
+        updateClockDisplay();
+        saveAllSettings();
+      });
+      
+      fontFamilySelect.addEventListener('change', (e) => {
+        settings.fontFamily = e.target.value;
+        applyAllStyles();
+        saveAllSettings();
+      });
+      fontSizeSelect.addEventListener('change', (e) => {
+        settings.fontSize = e.target.value;
+        applyAllStyles();
+        saveAllSettings();
+      });
+      
+      // เมื่อผู้ใช้ปรับสีเอง ให้ยกเลิกสถานะ Night Mode และบันทึก
+      function handleColorChange(property, value) {
+        settings[property] = value;
+        isNightModeActive = false;
+        updateNightModeButtonUI();
+        applyAllStyles();
+        saveAllSettings();
+      }
+      
+      textColorPicker.addEventListener('input', (e) => handleColorChange('textColor', e.target.value));
+      cardBgPicker.addEventListener('input', (e) => handleColorChange('cardBg', e.target.value));
+      bodyBgPicker.addEventListener('input', (e) => handleColorChange('bodyBg', e.target.value));
+      analogFacePicker.addEventListener('input', (e) => handleColorChange('analogFace', e.target.value));
+      analogHandsPicker.addEventListener('input', (e) => handleColorChange('analogHands', e.target.value));
+      analogNumbersPicker.addEventListener('input', (e) => handleColorChange('analogNumbers', e.target.value));
+    }
+    
+    function resetToDefault() {
+      settings = { ...defaultLight };
+      settings.clockStyle = clockStyle; // รักษารูปแบบนาฬิกาที่ผู้ใช้เลือกไว้
+      settings.timeFormat = currentFormat;
+      settings.fontFamily = fontFamilySelect.value;
+      settings.fontSize = fontSizeSelect.value;
+      isNightModeActive = false;
+      
+      // Sync pickers
+      textColorPicker.value = settings.textColor;
+      bodyBgPicker.value = settings.bodyBg;
+      cardBgPicker.value = settings.cardBg;
+      analogFacePicker.value = settings.analogFace;
+      analogHandsPicker.value = settings.analogHands;
+      analogNumbersPicker.value = settings.analogNumbers;
+      
+      updateTimeFormatButtons();
+      updateClockStyleButtons();
+      applyAllStyles();
+      saveAllSettings();
+      updateNightModeButtonUI();
+    }
+    
+    // ---------- Modal เปิด/ปิด ----------
+    function openModal() { settingsModal.classList.remove('hidden'); }
+    function closeModalFunc() { settingsModal.classList.add('hidden'); }
+    
+    // ---------- init ----------
+    function init() {
+      loadAllSettings();
+      attachSettingsEvents();
+      setInterval(updateClockDisplay, 1000);
+      
+      settingsBtn.onclick = openModal;
+      closeSettings.onclick = closeModalFunc;
+      settingsModal.onclick = (e) => { if (e.target === settingsModal) closeModalFunc(); };
+      resetBtn.onclick = resetToDefault;
+      nightModeBtn.onclick = toggleNightMode;
+      
+      drawAnalogClock();
     }
     
     init();
