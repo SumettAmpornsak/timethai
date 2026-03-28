@@ -1,229 +1,309 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-  <title>แสดงเวลาปัจจุบันของประเทศไทย</title>
-  <link rel="icon" href="../img/clock time thai.png" type="image/x-icon" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TimeThai · เวลาไทยทันสมัย</title>
+  <!-- Tailwind CSS + Font Awesome (minimal) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Custom config override Tailwind for smoother dark mode -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
   <style>
-    html,
+    /* smooth transitions & glassmorphism */
     body {
-      margin: 0;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      font-family: "Kanit", sans-serif;
-      font-weight: 300;
-      transition: background-color 0.3s, color 0.5s;
+      transition: background-color 0.3s ease, color 0.2s ease;
     }
-
-    body {
-      flex: 1;
-      align-items: center;
-      justify-content: center;
+    .glass-card {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      border-radius: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
     }
-
-    h1 {
-      font-size: 3em;
-      text-align: center;
+    .dark .glass-card {
+      background: rgba(15, 25, 35, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-
-    #current-time {
-      font-size: 5em;
-      font-weight: bold;
-    }
-
-    #current-date {
-      font-size: 2em;
-    }
-
-    .dark-mode {
-      background-color: #121212;
-      color: #ffffff;
-    }
-
-    .light-mode {
-      background-color: #ffffff;
-      color: #000000;
-    }
-
-    .theme-toggle,
-    .fullscreen-toggle {
-      margin: 10px 5px;
-      padding: 10px 20px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      font-size: 1em;
-      transition: background-color 0.3s, color 0.3s;
-    }
-
-    .theme-toggle.dark-mode,
-    .fullscreen-toggle.dark-mode {
-      background-color: #ffffff;
-      color: #000000;
-    }
-
-    .theme-toggle.light-mode,
-    .fullscreen-toggle.light-mode {
-      background-color: #121212;
-      color: #ffffff;
-    }
-
-    #container {
-      background-color: rgba(0, 0, 0, 0.05);
-      border-radius: 50px;
-      padding: 20px;
-      display: inline-block;
-      text-align: center;
-      transition: color 0.9s;
-    }
-
-    #container:hover {
-      color: hsl(158, 95%, 34%);
-      cursor: pointer;
-    }
-
-    footer {
-      width: 100%;
-      background-color: #000;
-      color: #fff;
-      text-align: center;
-      padding: 10px 0;
-      position: fixed;
-      bottom: 0;
-    }
-
-    footer a {
-      color: #007bff;
-      text-decoration: none;
-    }
-
-    footer a:hover {
-      text-decoration: underline;
+    /* custom focus ring */
+    button:focus-visible, a:focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
     }
   </style>
 </head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased">
 
-<body class="light-mode">
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="index.html">Time in Thailand by Sumett Ampornsak</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item active">
-          <a class="nav-link" href="index.html">หน้าหลัก</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="settings.html">ตั้งค่า</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="contact.html">ติดต่อ</a>
-        </li>
-      </ul>
+  <!-- Main Container -->
+  <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <!-- Time Card (main display) -->
+    <div class="glass-card w-full max-w-2xl p-8 md:p-12 transition-all duration-300">
+      <!-- Current Time (digital clock) -->
+      <div class="text-center">
+        <div id="timeDisplay" class="text-6xl md:text-7xl font-bold tracking-tight font-mono mb-2">--:--:--</div>
+        <div id="dateThai" class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mt-2">--</div>
+        <div id="buddhistYear" class="text-sm text-gray-500 dark:text-gray-400 mt-1">พ.ศ. ----</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-4">⏱️ เวลาตามเขตไทย (UTC+7)</div>
+      </div>
     </div>
-  </nav>
 
-  <div id="container" class="container mt-4">
-    <h1>เวลาปัจจุบันของประเทศไทย</h1>
-    <p id="current-time"></p>
-    <p id="current-date"></p>
-    <button class="btn btn-light theme-toggle" onclick="toggleTheme()">
-      <i class="fas fa-adjust"></i> Select Mode
-    </button>
-    <button class="btn btn-light fullscreen-toggle" onclick="toggleFullScreen()">
-      <i class="fas fa-expand"></i> Full Screen
-    </button>
+    <!-- Action Buttons (Settings & Contact) -->
+    <div class="flex flex-wrap gap-4 justify-center mt-8">
+      <button id="settingsBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700">
+        <i class="fas fa-sliders-h text-sm"></i> <span>ตั้งค่า</span>
+      </button>
+      <button id="contactBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-700">
+        <i class="fas fa-envelope text-sm"></i> <span>ติดต่อ</span>
+      </button>
+    </div>
+
+    <!-- Footer note (optional) -->
+    <div class="mt-12 text-center text-xs text-gray-400 dark:text-gray-600">
+      TimeThai · เวลาไทยทันสมัย
+    </div>
   </div>
 
-  <footer>
-    <p>&copy; Sumett Ampornsak 2024</p>
-    <p>
-      <a href="mailto:Sumett13ampornsak@gmail.com">Sumett13ampornsak@gmail.com</a>
-    </p>
-  </footer>
+  <!-- ========== MODAL: SETTINGS ========== -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-all duration-200">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl transform transition-all">
+      <div class="flex justify-between items-center mb-5">
+        <h2 class="text-xl font-semibold">ตั้งค่าระบบ</h2>
+        <button id="closeSettings" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <div class="space-y-5">
+        <!-- Time Format -->
+        <div>
+          <label class="block text-sm font-medium mb-2">รูปแบบเวลา</label>
+          <div class="flex gap-3">
+            <button id="format24" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">24 ชั่วโมง</button>
+            <button id="format12" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">12 ชั่วโมง (AM/PM)</button>
+          </div>
+        </div>
+        <!-- Theme Mode -->
+        <div>
+          <label class="block text-sm font-medium mb-2">โหมดการแสดงผล</label>
+          <div class="flex gap-3">
+            <button id="themeLight" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"><i class="fas fa-sun mr-1"></i> สว่าง</button>
+            <button id="themeDark" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"><i class="fas fa-moon mr-1"></i> มืด</button>
+            <button id="themeAuto" class="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"><i class="fas fa-adjust mr-1"></i> อัตโนมัติ</button>
+          </div>
+        </div>
+      </div>
+      <div class="mt-6 text-xs text-gray-500 text-center">การตั้งค่าถูกบันทึกอัตโนมัติ</div>
+    </div>
+  </div>
+
+  <!-- ========== MODAL: CONTACT ========== -->
+  <div id="contactModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-all duration-200">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl transform transition-all">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">ติดต่อ & ช่องทาง</h2>
+        <button id="closeContact" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <div class="space-y-4 text-center">
+        <p class="text-gray-600 dark:text-gray-300">มีข้อเสนอแนะ หรือพบปัญหา?</p>
+        <div class="flex justify-center gap-6 text-2xl">
+          <a href="mailto:support@timethai.com" class="hover:text-blue-500 transition"><i class="fas fa-envelope"></i></a>
+          <a href="#" class="hover:text-blue-400 transition"><i class="fab fa-github"></i></a>
+          <a href="#" class="hover:text-green-500 transition"><i class="fab fa-line"></i></a>
+        </div>
+        <p class="text-sm text-gray-500 mt-3">อีเมล: timethai@example.com</p>
+        <hr class="my-2 dark:border-gray-700">
+        <div class="text-xs text-gray-400">พัฒนาโดยทีม TimeThai — เพื่อคนไทยทุกคน</div>
+      </div>
+    </div>
+  </div>
 
   <script>
-    function displayBangkokTime() {
-      const bangkokTime = new Date().toLocaleString("th-TH", {
-        timeZone: "Asia/Bangkok",
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
+    // ------------------------------
+    //  Global Variables & Helpers
+    // ------------------------------
+    let currentFormat = '24';   // '24' or '12'
+    let currentTheme = 'auto';  // 'light', 'dark', 'auto'
 
-      // แยกวันที่กับเวลาออกจากกัน
-      const parts = bangkokTime.split(" ");
-      // รูปแบบ: วันเดือนปี เวลา เช่น "วันศุกร์ที่ 24 พฤษภาคม 2567 14:30:15"
-      // โดยทั่วไป parts จะมีข้อมูลแบบนี้:
-      // ["วันศุกร์ที่", "24", "พฤษภาคม", "2567", "14:30:15"]
+    // DOM elements
+    const timeDisplay = document.getElementById('timeDisplay');
+    const dateThaiEl = document.getElementById('dateThai');
+    const buddhistYearEl = document.getElementById('buddhistYear');
+    
+    // Settings Modal
+    const settingsModal = document.getElementById('settingsModal');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeSettings = document.getElementById('closeSettings');
+    const format24Btn = document.getElementById('format24');
+    const format12Btn = document.getElementById('format12');
+    const themeLightBtn = document.getElementById('themeLight');
+    const themeDarkBtn = document.getElementById('themeDark');
+    const themeAutoBtn = document.getElementById('themeAuto');
+    
+    // Contact Modal
+    const contactModal = document.getElementById('contactModal');
+    const contactBtn = document.getElementById('contactBtn');
+    const closeContact = document.getElementById('closeContact');
 
-      // หา index เวลา (อาจจะเป็นตัวสุดท้าย)
-      const time = parts[parts.length - 1];
-      // เอาวันที่ออกมาโดย join ส่วนก่อนหน้า
-      const date = parts.slice(0, parts.length - 1).join(" ");
-
-      document.getElementById("current-time").textContent = time;
-      document.getElementById("current-date").textContent = date;
-
-      document.title = `เวลาตอนนี้ ${time}`;
+    // ---------- Helper: load saved settings ----------
+    function loadSettings() {
+      const savedFormat = localStorage.getItem('timethai_timeFormat');
+      if (savedFormat === '12' || savedFormat === '24') currentFormat = savedFormat;
+      const savedTheme = localStorage.getItem('timethai_theme');
+      if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'auto') currentTheme = savedTheme;
+      applyTheme(currentTheme);
+      updateButtonsState();
     }
 
-    function toggleTheme() {
-      const body = document.body;
-      const themeBtn = document.querySelector(".theme-toggle");
-      const fullBtn = document.querySelector(".fullscreen-toggle");
-      const isLight = body.classList.contains("light-mode");
-
-      body.classList.toggle("light-mode", !isLight);
-      body.classList.toggle("dark-mode", isLight);
-      themeBtn.classList.toggle("light-mode", !isLight);
-      themeBtn.classList.toggle("dark-mode", isLight);
-      fullBtn.classList.toggle("light-mode", !isLight);
-      fullBtn.classList.toggle("dark-mode", isLight);
-      themeBtn.innerHTML = isLight ?
-        '<i class="fas fa-sun"></i> Light Mode' :
-        '<i class="fas fa-moon"></i> Dark Mode';
-    }
-
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else if (document.exitFullscreen) {
-        document.exitFullscreen();
+    // update active visual on settings buttons
+    function updateButtonsState() {
+      // time format buttons
+      if (currentFormat === '24') {
+        format24Btn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+        format12Btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+      } else {
+        format12Btn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+        format24Btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
       }
+      // theme buttons (just style hint)
+      [themeLightBtn, themeDarkBtn, themeAutoBtn].forEach(btn => btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400'));
+      if (currentTheme === 'light') themeLightBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+      if (currentTheme === 'dark') themeDarkBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
+      if (currentTheme === 'auto') themeAutoBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'border-blue-400');
     }
 
-    window.onload = function () {
-      const fontSize = localStorage.getItem("fontSize") || "16px";
-      const bgColor = localStorage.getItem("bgColor") || "#ffffff";
-      const fontFamily = localStorage.getItem("fontFamily") || "'Kanit', sans-serif";
-      document.body.style.fontSize = fontSize;
-      document.body.style.backgroundColor = bgColor;
-      document.body.style.fontFamily = fontFamily;
-    };
+    // apply theme to document
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      if (theme === 'light') {
+        root.classList.remove('dark');
+      } else if (theme === 'dark') {
+        root.classList.add('dark');
+      } else if (theme === 'auto') {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      }
+      localStorage.setItem('timethai_theme', theme);
+      currentTheme = theme;
+    }
 
-    displayBangkokTime();
-    setInterval(displayBangkokTime, 1000);
+    // listen to system theme change when in auto mode
+    function watchSystemTheme() {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = (e) => {
+        if (currentTheme === 'auto') {
+          if (e.matches) document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+        }
+      };
+      mediaQuery.addEventListener('change', handler);
+    }
+
+    // ---------- Time & Date Logic ----------
+    function getThaiDateTime() {
+      const now = new Date();
+      // convert to UTC+7 (Thailand)
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const thaiTime = new Date(utc + (7 * 3600000));
+      
+      // Format time
+      let hours = thaiTime.getHours();
+      let minutes = thaiTime.getMinutes();
+      let seconds = thaiTime.getSeconds();
+      let period = '';
+      
+      if (currentFormat === '12') {
+        period = hours >= 12 ? ' PM' : ' AM';
+        hours = hours % 12 || 12;
+      }
+      const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}${period}`;
+      
+      // Thai date elements
+      const weekdaysThai = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+      const monthsThai = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+      const dayOfWeek = weekdaysThai[thaiTime.getDay()];
+      const day = thaiTime.getDate();
+      const month = monthsThai[thaiTime.getMonth()];
+      const buddhistYear = thaiTime.getFullYear() + 543;
+      const thaiDateString = `วัน${dayOfWeek}ที่ ${day} ${month} พ.ศ. ${buddhistYear}`;
+      const buddhistYearOnly = `พ.ศ. ${buddhistYear}`;
+      
+      return { formattedTime, thaiDateString, buddhistYearOnly };
+    }
+    
+    function updateClock() {
+      const { formattedTime, thaiDateString, buddhistYearOnly } = getThaiDateTime();
+      timeDisplay.textContent = formattedTime;
+      dateThaiEl.textContent = thaiDateString;
+      buddhistYearEl.textContent = buddhistYearOnly;
+    }
+    
+    // ---------- Settings event handlers ----------
+    function setTimeFormat(format) {
+      currentFormat = format;
+      localStorage.setItem('timethai_timeFormat', format);
+      updateButtonsState();
+      updateClock(); // immediate refresh
+    }
+    
+    function setTheme(theme) {
+      currentTheme = theme;
+      applyTheme(theme);
+      updateButtonsState();
+    }
+    
+    // ---------- Modal controls ----------
+    function openModal(modal) {
+      modal.classList.remove('hidden');
+      // trap focus minimal
+    }
+    function closeModal(modal) {
+      modal.classList.add('hidden');
+    }
+    
+    // ---------- Initialization ----------
+    function init() {
+      loadSettings();
+      watchSystemTheme();
+      updateClock();
+      setInterval(updateClock, 1000);
+      
+      // Settings modal events
+      settingsBtn.onclick = () => openModal(settingsModal);
+      closeSettings.onclick = () => closeModal(settingsModal);
+      settingsModal.onclick = (e) => { if (e.target === settingsModal) closeModal(settingsModal); };
+      
+      format24Btn.onclick = () => setTimeFormat('24');
+      format12Btn.onclick = () => setTimeFormat('12');
+      themeLightBtn.onclick = () => setTheme('light');
+      themeDarkBtn.onclick = () => setTheme('dark');
+      themeAutoBtn.onclick = () => setTheme('auto');
+      
+      // Contact modal events
+      contactBtn.onclick = () => openModal(contactModal);
+      closeContact.onclick = () => closeModal(contactModal);
+      contactModal.onclick = (e) => { if (e.target === contactModal) closeModal(contactModal); };
+      
+      // Keyboard ESC to close modals
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (!settingsModal.classList.contains('hidden')) closeModal(settingsModal);
+          if (!contactModal.classList.contains('hidden')) closeModal(contactModal);
+        }
+      });
+    }
+    
+    init();
   </script>
-
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
-
 </html>
